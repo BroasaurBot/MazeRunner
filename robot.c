@@ -1,7 +1,10 @@
 #include "robot.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include  "stack.h"
+
+#define STATE_DRIVE 1
+#define STATE_LEFT_CLEAR 2
+#define STATE_RIGHT_CLEAR 3
 
 void setup_robot(struct Robot *robot){
     robot->x = OVERALL_WINDOW_WIDTH/2-50;
@@ -15,7 +18,10 @@ void setup_robot(struct Robot *robot){
     robot->currentSpeed = 0;
     robot->crashed = 0;
     robot->auto_mode = 0;
-    robot->polledMove = NOTHING;
+    
+    robot->state = STATE_DRIVE;
+    for (int i = 0; i < POLLSIZE; i++) robot->polledMoves[i] = NOTHING;
+    robot->size = 0;
 
     printf("Press arrow keys to move manually, or enter to move automatically\n\n");
 }
@@ -89,14 +95,14 @@ int checkRobotSensorRightAllWalls(struct Robot * robot, struct Wall_collection *
     int robotCentreX, robotCentreY, xTL, yTL;
     int score, hit;
 
-    int sensorSensitivityLength =  floor(SENSOR_VISION/5);
+    int sensorSensitivityLength =  floor(SENSOR_VISION/10);
 
     head_store = head;
     robotCentreX = robot->x+ROBOT_WIDTH/2;
     robotCentreY = robot->y+ROBOT_HEIGHT/2;
     score = 0;
 
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 10; i++)
     {
         ptr = head_store;
         //xDir = round(robotCentreX+(ROBOT_WIDTH/2-2)*cos((robot->angle + 90)*PI/180) -(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle + 90)*PI/180));
@@ -131,9 +137,9 @@ int checkRobotSensorLeftAllWalls(struct Robot * robot, struct Wall_collection * 
     robotCentreX = robot->x+ROBOT_WIDTH/2;
     robotCentreY = robot->y+ROBOT_HEIGHT/2;
     score = 0;
-    sensorSensitivityLength =  floor(SENSOR_VISION/5);
+    sensorSensitivityLength =  floor(SENSOR_VISION/10);
 
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 10; i++)
     {
         ptr = head_store;
         //xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
@@ -169,9 +175,9 @@ int checkRobotSensorFrontAllWalls(struct Robot * robot, struct Wall_collection *
     robotCentreX = robot->x+ROBOT_WIDTH/2;
     robotCentreY = robot->y+ROBOT_HEIGHT/2;
     score = 0;
-    sensorSensitivityLength =  floor(SENSOR_VISION/5);
+    sensorSensitivityLength =  floor(SENSOR_VISION/10);
 
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 10; i++)
     {
         ptr = head_store;
         xDir = round(robotCentreX  -  (-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
@@ -189,6 +195,32 @@ int checkRobotSensorFrontAllWalls(struct Robot * robot, struct Wall_collection *
             score = i;
     }
     return score;
+}
+
+int addToPoll(struct Robot * robot, int move) {
+    if (robot->size + 1 < POLLSIZE) {
+        robot->polledMoves[robot->size++] = move;
+        return 1;
+    }else {
+        printf("Exceeding poll size");
+        return 0;
+    }
+}
+
+int popPoll(struct Robot * robot) {
+    if (robot->size - 1 >= 0) {
+        return robot->polledMoves[--robot->size];
+    }else {
+        return NOTHING;
+    }
+}
+
+int topPoll(struct Robot * robot) {
+    if (robot->size - 1 >= 0) {
+        return robot->polledMoves[robot->size - 1];
+    }else {
+        return NOTHING;
+    }
 }
 
 void robotUpdate(struct SDL_Renderer * renderer, struct Robot * robot){
@@ -339,31 +371,70 @@ void robotMotorMove(struct Robot * robot) {
 
 void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor, int front_sensor) {
     
-    if (robot->polledMove != NOTHING) {
-        robot->direction = robot->polledMove;
+    //Any polled moves will always be done first
+    if (topPoll(robot) != NOTHING) {
+        robot->direction = popPoll(robot);
         printf("Using polled\n");
-        robot->polledMove = NOTHING;
         return;
     }
-
-    if (front_sensor == 0) {
-        if (robot->currentSpeed < 3) {
-            robot->direction = UP;
-        }
+    
+    //If robot has cleared near walls and search forward for the next one
+    if (robot->state == STATE_DRIVE) {
         
-    }else {
-        
-        if (robot->currentSpeed > 0) {
-            robot->direction = DOWN;
+        if (front_sensor < 4 && left_sensor < 8 && right_sensor < 8) {
+            if (robot->currentSpeed < 3) {
+                robot->direction = UP;
+            }
             
         }else {
-            if (left_sensor > right_sensor) {
-                robot->direction = RIGHT;
-                robot->polledMove = RIGHT;
+            
+            if (robot->currentSpeed > 0) {
+                robot->direction = DOWN;
+                
             }else {
-                robot->direction = LEFT;
-                robot->polledMove = LEFT;
+                if (left_sensor > right_sensor) {
+                    printf("Making a right turn\n");
+                    robot->direction = RIGHT;
+                    robot->state = STATE_RIGHT_CLEAR;
+                    
+                }else {
+                    printf("Making a left turn\n");
+                    robot->direction = LEFT;
+                    robot->state = STATE_LEFT_CLEAR;
+                }
             }
         }
+        
+    //Run into wall then it must avoid it
+    }else if (robot->state == STATE_LEFT_CLEAR) {
+        
+        if (front_sensor > 0) {
+            robot->direction = LEFT;
+            return;
+        }else {
+            printf("Clear to drive");
+            addToPoll(robot, LEFT);
+            addToPoll(robot, LEFT);
+            addToPoll(robot, LEFT);
+            robot->state = STATE_DRIVE;
+            return;
+        }
+        
+    }else if (robot->state == STATE_RIGHT_CLEAR) {
+        
+        if (front_sensor > 0) {
+            robot->direction = RIGHT;
+            return;
+        }else {
+            printf("Clear to drive");
+            addToPoll(robot, RIGHT);
+            addToPoll(robot, RIGHT);
+            addToPoll(robot, RIGHT);
+            robot->state = STATE_DRIVE;
+            return;;
+        }
     }
+    
+
+    
 }

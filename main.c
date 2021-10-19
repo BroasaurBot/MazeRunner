@@ -71,16 +71,10 @@ int main(int argc, char *argv[]) {
         //Otherwise compute sensor information
         else {
             left_sensor = checkRobotSensorLeftAllWalls(&robot, head);
-            if (left_sensor>0)
-                printf("Getting close on the left. Score = %d\n", left_sensor);
-
             right_sensor = checkRobotSensorRightAllWalls(&robot, head);
-            if (right_sensor>0)
-                printf("Getting close on the right. Score = %d\n", right_sensor);
-            
             front_sensor = checkRobotSensorFrontAllWalls(&robot, head);
-            if (front_sensor > 0)
-                printf("Getting close on the front. Score = %d\n", front_sensor);
+            
+            if (left_sensor > 0 || right_sensor > 0 || front_sensor > 0) printf("L: %d  F: %d  R: %d\n", left_sensor, front_sensor, right_sensor);
         }
         robotUpdate(renderer, &robot);
         updateAllWalls(head, renderer);
@@ -113,7 +107,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        SDL_Delay(120);
+        SDL_Delay(100);
     }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

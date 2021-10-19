@@ -19,7 +19,9 @@
 #define DEFAULT_SPEED_CHANGE 1
 #define MAX_ROBOT_SPEED 25
 #define PI 3.14159265
-#define SENSOR_VISION 50
+#define SENSOR_VISION 70
+
+#define POLLSIZE 10
 
 struct Wall {
     int x,y;
@@ -41,7 +43,10 @@ struct Robot {
     int width, height;
     int crashed;
     int auto_mode;
-    int polledMove;
+    
+    int state;
+    int polledMoves[POLLSIZE];
+    int size;
 };
 
 #endif // STRUCTURES_H_INCLUDED
