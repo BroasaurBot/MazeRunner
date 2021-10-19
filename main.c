@@ -25,12 +25,13 @@ int main(int argc, char *argv[]) {
 
     struct Robot robot;
     struct Wall_collection *head = NULL;
-    int front_left_sensor, front_right_sensor=0;
     clock_t start_time, end_time;
     int msec;
 
     // SETUP MAZE
     // You can create your own maze here. line of code is adding a wall.
+    int left_sensor, right_sensor,front_sensor=0;
+
     // You describe position of top left corner of wall (x, y), then width and height going down/to right
     // Relative positions are used (OVERALL_WINDOW_WIDTH and OVERALL_WINDOW_HEIGHT)
     // But you can use absolute positions. 10 is used as the width, but you can change this.
@@ -56,8 +57,8 @@ int main(int argc, char *argv[]) {
 
         //Move robot based on user input commands/auto commands
         if (robot.auto_mode == 1)
-            robotAutoMotorMove(&robot, front_left_sensor, front_right_sensor);
-        robotMotorMove(&robot);
+            robotAutoMotorMove(&robot, left_sensor, right_sensor, front_sensor);
+            robotMotorMove(&robot);
 
         //Check if robot reaches endpoint. and check sensor values
         if (checkRobotReachedEnd(&robot, OVERALL_WINDOW_WIDTH, OVERALL_WINDOW_HEIGHT/2+100, 10, 100)){
@@ -69,13 +70,17 @@ int main(int argc, char *argv[]) {
             robotCrash(&robot);
         //Otherwise compute sensor information
         else {
-            front_left_sensor = checkRobotSensorFrontLeftAllWalls(&robot, head);
-            if (front_left_sensor>0)
-                printf("Getting close on the left. Score = %d\n", front_left_sensor);
+            left_sensor = checkRobotSensorLeftAllWalls(&robot, head);
+            if (left_sensor>0)
+                printf("Getting close on the left. Score = %d\n", left_sensor);
 
-            front_right_sensor = checkRobotSensorFrontRightAllWalls(&robot, head);
-            if (front_right_sensor>0)
-                printf("Getting close on the right. Score = %d\n", front_right_sensor);
+            right_sensor = checkRobotSensorRightAllWalls(&robot, head);
+            if (right_sensor>0)
+                printf("Getting close on the right. Score = %d\n", right_sensor);
+            
+            front_sensor = checkRobotSensorFrontAllWalls(&robot, head);
+            if (front_sensor > 0)
+                printf("Getting close on the front. Score = %d\n", front_sensor);
         }
         robotUpdate(renderer, &robot);
         updateAllWalls(head, renderer);

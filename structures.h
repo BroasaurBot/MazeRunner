@@ -5,6 +5,7 @@
 #define DOWN 2
 #define LEFT 3
 #define RIGHT 4
+#define NOTHING 5
 
 #define OVERALL_WINDOW_WIDTH 640
 #define OVERALL_WINDOW_HEIGHT 480
@@ -14,11 +15,11 @@
 
 #define WALL_WIDTH 10
 
-#define DEFAULT_ANGLE_CHANGE 15
+#define DEFAULT_ANGLE_CHANGE 10
 #define DEFAULT_SPEED_CHANGE 1
 #define MAX_ROBOT_SPEED 25
 #define PI 3.14159265
-#define SENSOR_VISION 60
+#define SENSOR_VISION 50
 
 struct Wall {
     int x,y;
@@ -40,6 +41,7 @@ struct Robot {
     int width, height;
     int crashed;
     int auto_mode;
+    int polledMove;
 };
 
 #endif // STRUCTURES_H_INCLUDED
