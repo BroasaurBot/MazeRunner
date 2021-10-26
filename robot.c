@@ -9,7 +9,7 @@
 void setup_robot(struct Robot *robot){
     robot->x = OVERALL_WINDOW_WIDTH/2-50;
     robot->y = OVERALL_WINDOW_HEIGHT-50;
-    robot->true_x = OVERALL_WINDOW_WIDTH/2-50;
+    robot->true_x = OVERALL_WINDOW_WIDTH/2-110;
     robot->true_y = OVERALL_WINDOW_HEIGHT-50;
     robot->width = ROBOT_WIDTH;
     robot->height = ROBOT_HEIGHT;
@@ -369,6 +369,24 @@ void robotMotorMove(struct Robot * robot) {
     robot->y = (int) y_offset;
 }
 
+void match90(struct Robot * robot, int direction, int range) {
+    
+    
+    if (((robot->angle % 90) / DEFAULT_ANGLE_CHANGE) < range && direction == LEFT) {
+        for (int i = 0; i < (robot->angle % 90 / DEFAULT_ANGLE_CHANGE); i++) {
+            addToPoll(robot, LEFT);
+        }
+    }
+    
+    if (((90 - robot->angle % 90) / DEFAULT_ANGLE_CHANGE) < range && direction == RIGHT) {
+        for (int i = 0; i < ((90 - robot->angle % 90) / DEFAULT_ANGLE_CHANGE); i++) {
+            addToPoll(robot, RIGHT);
+        }
+    }
+    
+    
+}
+
 void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor, int front_sensor) {
     
     //Any polled moves will always be done first
@@ -381,14 +399,37 @@ void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor,
     //If robot has cleared near walls and search forward for the next one
     if (robot->state == STATE_DRIVE) {
         
-        if (front_sensor < 4 && left_sensor < 8 && right_sensor < 8) {
-            if (robot->currentSpeed < 3) {
+        
+        //If almost running into the side walls
+        if (left_sensor >= 7 || right_sensor >= 7) {
+            
+            if (robot->currentSpeed > 5) {
+                robot->direction = DOWN;
+                return;
+            }
+            
+            if (left_sensor > right_sensor) {
+                robot->direction = RIGHT;
+                
+                if (robot->currentSpeed < 3) addToPoll(robot, UP);
+            }else {
+                robot->direction = LEFT;
+                if (robot->currentSpeed < 3) addToPoll(robot, UP);
+            }
+            return;
+        }
+        
+        
+        //Running into the wall in front
+        if (front_sensor < 1) {
+            
+            if (robot->currentSpeed < 6) {
                 robot->direction = UP;
             }
             
         }else {
             
-            if (robot->currentSpeed > 0) {
+            if (robot->currentSpeed > 3) {
                 robot->direction = DOWN;
                 
             }else {
@@ -405,6 +446,7 @@ void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor,
             }
         }
         
+        
     //Run into wall then it must avoid it
     }else if (robot->state == STATE_LEFT_CLEAR) {
         
@@ -413,13 +455,15 @@ void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor,
             return;
         }else {
             printf("Clear to drive");
-            addToPoll(robot, LEFT);
-            addToPoll(robot, LEFT);
-            addToPoll(robot, LEFT);
+            //addToPoll(robot, LEFT);
+            //addToPoll(robot, LEFT);
             robot->state = STATE_DRIVE;
+            
+            match90(robot, LEFT, 5);
             return;
         }
         
+    
     }else if (robot->state == STATE_RIGHT_CLEAR) {
         
         if (front_sensor > 0) {
@@ -427,11 +471,12 @@ void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor,
             return;
         }else {
             printf("Clear to drive");
-            addToPoll(robot, RIGHT);
-            addToPoll(robot, RIGHT);
-            addToPoll(robot, RIGHT);
+            //addToPoll(robot, RIGHT);
+            //addToPoll(robot, RIGHT);
             robot->state = STATE_DRIVE;
-            return;;
+            
+            match90(robot, RIGHT, 5);
+            return;
         }
     }
     
