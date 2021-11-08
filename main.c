@@ -7,6 +7,7 @@
 #include "formulas.h"
 #include "wall.h"
 #include "robot.h"
+#include "math.h"
 
 int done = 0;
 
@@ -30,13 +31,16 @@ int main(int argc, char *argv[]) {
 
     // SETUP MAZE
     // You can create your own maze here. line of code is adding a wall.
-    int left_sensor, right_sensor,front_sensor=0;
+    int top_left_sensor, bottom_left_sensor, front_right_sensor,front_left_sensor=0;
 
     // You describe position of top left corner of wall (x, y), then width and height going down/to right
     // Relative positions are used (OVERALL_WINDOW_WIDTH and OVERALL_WINDOW_HEIGHT)
     // But you can use absolute positions. 10 is used as the width, but you can change this.
     
-    /*
+    //------------------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------------------
+    
     insertAndSetFirstWall(&head, 1,  OVERALL_WINDOW_WIDTH/2, OVERALL_WINDOW_HEIGHT/2, 10, OVERALL_WINDOW_HEIGHT/2);
     insertAndSetFirstWall(&head, 2,  OVERALL_WINDOW_WIDTH/2-100, OVERALL_WINDOW_HEIGHT/2+100, 10, OVERALL_WINDOW_HEIGHT/2-100);
     insertAndSetFirstWall(&head, 3,  OVERALL_WINDOW_WIDTH/2-250, OVERALL_WINDOW_HEIGHT/2+100, 150, 10);
@@ -49,29 +53,13 @@ int main(int argc, char *argv[]) {
     insertAndSetFirstWall(&head, 10,  OVERALL_WINDOW_WIDTH/2+100, OVERALL_WINDOW_HEIGHT/2-100, 10, 300);
     insertAndSetFirstWall(&head, 11,  OVERALL_WINDOW_WIDTH/2+100, OVERALL_WINDOW_HEIGHT/2+200, OVERALL_WINDOW_WIDTH/2-100, 10);
     insertAndSetFirstWall(&head, 12,  OVERALL_WINDOW_WIDTH/2+200, OVERALL_WINDOW_HEIGHT/2+100, OVERALL_WINDOW_WIDTH/2-100, 10);
-     */
-    insertAndSetFirstWall(&head, 1,  OVERALL_WINDOW_WIDTH/4, OVERALL_WINDOW_HEIGHT/4-50, 10, OVERALL_WINDOW_HEIGHT/4*3+50);
-        insertAndSetFirstWall(&head, 2,  OVERALL_WINDOW_WIDTH/4, OVERALL_WINDOW_HEIGHT/4-50, OVERALL_WINDOW_WIDTH/3*2-60, 10);
-        insertAndSetFirstWall(&head, 3,  OVERALL_WINDOW_WIDTH/4+100, OVERALL_WINDOW_HEIGHT/2+100, 10, OVERALL_WINDOW_HEIGHT/4+20);
-        insertAndSetFirstWall(&head, 4,  OVERALL_WINDOW_WIDTH/4+100, OVERALL_WINDOW_HEIGHT/2+100, OVERALL_WINDOW_WIDTH/8, 10);
-        insertAndSetFirstWall(&head, 5,  OVERALL_WINDOW_WIDTH/4, OVERALL_WINDOW_HEIGHT/2+10, 90, 10);
-        insertAndSetFirstWall(&head, 6,  OVERALL_WINDOW_WIDTH/4+180, OVERALL_WINDOW_HEIGHT/4-50+100, 10, 240);
-        insertAndSetFirstWall(&head, 7,  OVERALL_WINDOW_WIDTH/4+100, OVERALL_WINDOW_HEIGHT/4-50+100, 180, 10);
-        insertAndSetFirstWall(&head, 8,  OVERALL_WINDOW_WIDTH/4+400-40, OVERALL_WINDOW_HEIGHT/4-50, 10, 110);
-        insertAndSetFirstWall(&head, 9,  OVERALL_WINDOW_WIDTH/4+280, OVERALL_WINDOW_HEIGHT/4-50+200-10, 10, 80);
-        insertAndSetFirstWall(&head, 10, OVERALL_WINDOW_WIDTH/4+280, OVERALL_WINDOW_HEIGHT/4-50+200-10, 70, 10);
-        insertAndSetFirstWall(&head, 11, OVERALL_WINDOW_WIDTH/4+280+70, OVERALL_WINDOW_HEIGHT/4-50+200-10, 10, 80);
-        insertAndSetFirstWall(&head, 12, OVERALL_WINDOW_WIDTH/4+280, OVERALL_WINDOW_HEIGHT/4-50+280-10, 80, 10);
-        insertAndSetFirstWall(&head, 13, OVERALL_WINDOW_WIDTH/4+400-40, OVERALL_WINDOW_HEIGHT/4-50+100, 100-10, 10);
-        insertAndSetFirstWall(&head, 14, OVERALL_WINDOW_WIDTH/4+500-60, OVERALL_WINDOW_HEIGHT/4-50+100, 10, 240);
-        insertAndSetFirstWall(&head, 15, OVERALL_WINDOW_WIDTH/4+180, OVERALL_WINDOW_HEIGHT/4-50+340, 90, 10);
-        insertAndSetFirstWall(&head, 16, OVERALL_WINDOW_WIDTH/4+280+80, OVERALL_WINDOW_HEIGHT/4-50+340, 90, 10);
-        insertAndSetFirstWall(&head, 17, OVERALL_WINDOW_WIDTH/4+280-10, OVERALL_WINDOW_HEIGHT/4-50+340, 10, 70);
-        insertAndSetFirstWall(&head, 18, OVERALL_WINDOW_WIDTH/4+280+80, OVERALL_WINDOW_HEIGHT/4-50+340, 10, 70);
-        insertAndSetFirstWall(&head, 19, OVERALL_WINDOW_WIDTH/4+280-10, OVERALL_WINDOW_HEIGHT-10, 90, 10);
+    
+    //------------------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------------------
     setup_robot(&robot);
     updateAllWalls(head, renderer);
-
+    
     SDL_Event event;
     while(!done){
         SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
@@ -79,11 +67,11 @@ int main(int argc, char *argv[]) {
 
         //Move robot based on user input commands/auto commands
         if (robot.auto_mode == 1)
-            robotAutoMotorMove(&robot, left_sensor, right_sensor, front_sensor);
+            robotAutoMotorMove(&robot, top_left_sensor, bottom_left_sensor, front_right_sensor, front_left_sensor);
             robotMotorMove(&robot);
 
         //Check if robot reaches endpoint. and check sensor values
-        if (checkRobotReachedEnd(&robot, OVERALL_WINDOW_WIDTH, OVERALL_WINDOW_HEIGHT/2+100, 10, 100)){
+        if (checkRobotReachedEnd(&robot, 0, 20, 10, 60)){ //Maze 7
             end_time = clock();
             msec = (end_time-start_time) * 1000 / CLOCKS_PER_SEC;
             robotSuccess(&robot, msec);
@@ -92,11 +80,12 @@ int main(int argc, char *argv[]) {
             robotCrash(&robot);
         //Otherwise compute sensor information
         else {
-            left_sensor = checkRobotSensorLeftAllWalls(&robot, head);
-            right_sensor = checkRobotSensorRightAllWalls(&robot, head);
-            front_sensor = checkRobotSensorFrontAllWalls(&robot, head);
+            top_left_sensor = checkRobotSensorBottomLeftAllWalls(&robot, head);
+            bottom_left_sensor = checkRobotSensorTopLeftAllWalls(&robot, head);
+            front_right_sensor = checkRobotSensorFrontRightAllWalls(&robot, head);
+            front_left_sensor = checkRobotSensorFrontLeftAllWalls(&robot, head);
             
-            if (left_sensor > 0 || right_sensor > 0 || front_sensor > 0) printf("L: %d  F: %d  R: %d\n", left_sensor, front_sensor, right_sensor);
+            if (bottom_left_sensor > 0 || top_left_sensor > 0 || front_right_sensor > 0 || front_left_sensor > 0) printf("T: %d  B: %d  FL: %d  FR: %d\n", top_left_sensor, bottom_left_sensor, front_right_sensor, front_left_sensor);
         }
         robotUpdate(renderer, &robot);
         updateAllWalls(head, renderer);

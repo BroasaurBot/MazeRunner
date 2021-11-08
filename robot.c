@@ -2,15 +2,18 @@
 #include "stdio.h"
 #include "stdlib.h"
 
+#define STATE_START 0
 #define STATE_DRIVE 1
-#define STATE_LEFT_CLEAR 2
-#define STATE_RIGHT_CLEAR 3
+#define STATE_FOLLOW 2
+#define STATE_LEFT 3
+#define STATE_RIGHT 4
 
+//Maze 5
 void setup_robot(struct Robot *robot){
-    robot->x = OVERALL_WINDOW_WIDTH/2-50;
-    robot->y = OVERALL_WINDOW_HEIGHT-50;
-    robot->true_x = OVERALL_WINDOW_WIDTH/2-110;
-    robot->true_y = OVERALL_WINDOW_HEIGHT-50;
+    robot->x = 640-10-170;
+    robot->y = 460;
+    robot->true_x = 270;
+    robot->true_y = 450;
     robot->width = ROBOT_WIDTH;
     robot->height = ROBOT_HEIGHT;
     robot->direction = 0;
@@ -19,7 +22,7 @@ void setup_robot(struct Robot *robot){
     robot->crashed = 0;
     robot->auto_mode = 0;
     
-    robot->state = STATE_DRIVE;
+    robot->state = STATE_START;
     for (int i = 0; i < POLLSIZE; i++) robot->polledMoves[i] = NOTHING;
     robot->size = 0;
 
@@ -88,44 +91,8 @@ int checkRobotSensor(int x, int y, int sensorSensitivityLength, struct Wall * wa
     return overlap;
 }
 
-int checkRobotSensorRightAllWalls(struct Robot * robot, struct Wall_collection * head) {
-    struct Wall_collection *ptr, *head_store;
-    int i;
-    double xDir, yDir;
-    int robotCentreX, robotCentreY, xTL, yTL;
-    int score, hit;
 
-    int sensorSensitivityLength =  floor(SENSOR_VISION/10);
-
-    head_store = head;
-    robotCentreX = robot->x+ROBOT_WIDTH/2;
-    robotCentreY = robot->y+ROBOT_HEIGHT/2;
-    score = 0;
-
-    for (i = 0; i < 10; i++)
-    {
-        ptr = head_store;
-        //xDir = round(robotCentreX+(ROBOT_WIDTH/2-2)*cos((robot->angle + 90)*PI/180) -(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle + 90)*PI/180));
-        //yDir = round(robotCentreY+(ROBOT_WIDTH/2-2)*sin((robot->angle + 90)*PI/180) +(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle + 90)*PI/180));
-        
-        xDir = round(robotCentreX - (ROBOT_WIDTH/8)*cos((robot->angle + 90)*PI/180)  -  (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle + 90)*PI/180));
-        yDir = round(robotCentreY  - (ROBOT_WIDTH/8)*sin((robot->angle + 90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle + 90)*PI/180));
-        
-        xTL = (int) xDir;
-        yTL = (int) yDir;
-        hit = 0;
-
-        while(ptr != NULL) {
-            hit = (hit || checkRobotSensor(xTL, yTL, sensorSensitivityLength, &ptr->wall));
-            ptr = ptr->next;
-        }
-        if (hit)
-            score = i;
-    }
-    return score;
-}
-
-int checkRobotSensorLeftAllWalls(struct Robot * robot, struct Wall_collection * head) {
+int checkRobotSensorTopLeftAllWalls(struct Robot * robot, struct Wall_collection * head) {
     struct Wall_collection *ptr, *head_store;
     int i;
     double xDir, yDir;
@@ -145,8 +112,10 @@ int checkRobotSensorLeftAllWalls(struct Robot * robot, struct Wall_collection * 
         //xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
         //yDir = round(robotCentreY+(-ROBOT_WIDTH/2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle)*PI/180));
         
-        xDir = round(robotCentreX + (ROBOT_WIDTH/8)*cos((robot->angle - 90)*PI/180)  -  (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle - 90)*PI/180));
-        yDir = round(robotCentreY + (ROBOT_WIDTH/8)*sin((robot->angle - 90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle - 90)*PI/180));
+        xDir = round(robotCentreX + (ROBOT_WIDTH/2)*cos((robot->angle + 90)*PI/180)  - (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle - 90)*PI/180));
+                     //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle - 115)*PI/180));
+        yDir = round(robotCentreY + (ROBOT_WIDTH/2)*sin((robot->angle + 90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle - 90)*PI/180));
+                     //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle - 115)*PI/180));
         
         xTL = (int) xDir;
         yTL = (int) yDir;
@@ -162,8 +131,7 @@ int checkRobotSensorLeftAllWalls(struct Robot * robot, struct Wall_collection * 
     return score;
 }
 
-
-int checkRobotSensorFrontAllWalls(struct Robot * robot, struct Wall_collection * head) {
+int checkRobotSensorBottomLeftAllWalls(struct Robot * robot, struct Wall_collection * head) {
     struct Wall_collection *ptr, *head_store;
     int i;
     double xDir, yDir;
@@ -180,8 +148,12 @@ int checkRobotSensorFrontAllWalls(struct Robot * robot, struct Wall_collection *
     for (i = 0; i < 10; i++)
     {
         ptr = head_store;
-        xDir = round(robotCentreX  -  (-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
-        yDir = round(robotCentreY +   (-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle)*PI/180));
+        //xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
+        //yDir = round(robotCentreY+(-ROBOT_WIDTH/2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle)*PI/180));
+        
+        xDir = round(robotCentreX + (ROBOT_WIDTH/2)*cos((robot->angle - 90)*PI/180)  - //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle - 90)*PI/180));
+                     (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle - 90)*PI/180));
+        yDir = round(robotCentreY + (ROBOT_WIDTH/2)*sin((robot->angle - 90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle - 90)*PI/180));
         
         xTL = (int) xDir;
         yTL = (int) yDir;
@@ -197,6 +169,77 @@ int checkRobotSensorFrontAllWalls(struct Robot * robot, struct Wall_collection *
     return score;
 }
 
+int checkRobotSensorFrontLeftAllWalls(struct Robot * robot, struct Wall_collection * head) {
+    struct Wall_collection *ptr, *head_store;
+    int i;
+    double xDir, yDir;
+    int robotCentreX, robotCentreY, xTL, yTL;
+    int score, hit;
+    int sensorSensitivityLength;
+
+    head_store = head;
+    robotCentreX = robot->x+ROBOT_WIDTH/2;
+    robotCentreY = robot->y+ROBOT_HEIGHT/2;
+    score = 0;
+    sensorSensitivityLength =  floor(SENSOR_VISION/10);
+
+    for (i = 0; i < 10; i++)
+    {
+        ptr = head_store;
+        xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
+        yDir = round(robotCentreY+(-ROBOT_WIDTH/2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle)*PI/180));
+        xTL = (int) xDir;
+        yTL = (int) yDir;
+        hit = 0;
+
+        while(ptr != NULL) {
+            hit = (hit || checkRobotSensor(xTL, yTL, sensorSensitivityLength, &ptr->wall));
+            ptr = ptr->next;
+        }
+        if (hit)
+            score = i;
+    }
+    return score;
+}
+
+int checkRobotSensorFrontRightAllWalls(struct Robot * robot, struct Wall_collection * head) {
+    struct Wall_collection *ptr, *head_store;
+    int i;
+    double xDir, yDir;
+    int robotCentreX, robotCentreY, xTL, yTL;
+    int score, hit;
+
+    int sensorSensitivityLength =  floor(SENSOR_VISION/10);
+
+    head_store = head;
+    robotCentreX = robot->x+ROBOT_WIDTH/2;
+    robotCentreY = robot->y+ROBOT_HEIGHT/2;
+    score = 0;
+
+    for (i = 0; i < 10; i++)
+    {
+        ptr = head_store;
+        xDir = round(robotCentreX+(ROBOT_WIDTH/2-2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*sin((robot->angle)*PI/180));
+        yDir = round(robotCentreY+(ROBOT_WIDTH/2-2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensorSensitivityLength*i)*cos((robot->angle)*PI/180));
+        xTL = (int) xDir;
+        yTL = (int) yDir;
+        hit = 0;
+
+        while(ptr != NULL) {
+            hit = (hit || checkRobotSensor(xTL, yTL, sensorSensitivityLength, &ptr->wall));
+            ptr = ptr->next;
+        }
+        if (hit)
+            score = i;
+    }
+    return score;
+}
+
+
+
+
+
+
 int addToPoll(struct Robot * robot, int move) {
     if (robot->size + 1 < POLLSIZE) {
         robot->polledMoves[robot->size++] = move;
@@ -211,7 +254,7 @@ int popPoll(struct Robot * robot) {
     if (robot->size - 1 >= 0) {
         return robot->polledMoves[--robot->size];
     }else {
-        return NOTHING;
+        return IGNORE;
     }
 }
 
@@ -219,7 +262,7 @@ int topPoll(struct Robot * robot) {
     if (robot->size - 1 >= 0) {
         return robot->polledMoves[robot->size - 1];
     }else {
-        return NOTHING;
+        return IGNORE;
     }
 }
 
@@ -277,18 +320,13 @@ void robotUpdate(struct SDL_Renderer * renderer, struct Robot * robot){
     SDL_RenderDrawLine(renderer,xBL, yBL, xTL, yTL);
     SDL_RenderDrawLine(renderer,xTL, yTL, xTR, yTR);
 
-    //Right Sensor
+    //Front Right Sensor
     int sensor_sensitivity =  floor(SENSOR_VISION/5);
     int i;
     for (i = 0; i < 5; i++)
     {
-        xDir = round(robotCentreX - (ROBOT_WIDTH/8)*cos((robot->angle + 90)*PI/180)  -  (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle + 90)*PI/180));
-        yDir = round(robotCentreY  - (ROBOT_WIDTH/8)*sin((robot->angle + 90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle + 90)*PI/180));
-        
-        //xDir = round(robotCentreX+  (ROBOT_WIDTH/6-4)*cos((robot->angle + 90)*PI/180)  -  (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle + 90)*PI/180)   );
-        //yDir = round(robotCentreY+(ROBOT_WIDTH/6-4)*sin((robot->angle + 90)*PI/180)+(-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle + 90)*PI/180));
-        
-        
+        xDir = round(robotCentreX+(ROBOT_WIDTH/2-2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle)*PI/180));
+        yDir = round(robotCentreY+(ROBOT_WIDTH/2-2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle)*PI/180));
         xTL = (int) xDir;
         yTL = (int) yDir;
 
@@ -298,11 +336,28 @@ void robotUpdate(struct SDL_Renderer * renderer, struct Robot * robot){
         SDL_RenderFillRect(renderer, &rect);
     }
 
-    //Left Sensor
+    //Front Left Sensor
     for (i = 0; i < 5; i++)
     {
-        xDir = round(robotCentreX + (ROBOT_WIDTH/8)*cos((robot->angle - 90)*PI/180)  -  (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle - 90)*PI/180));
-        yDir = round(robotCentreY + (ROBOT_WIDTH/8)*sin((robot->angle - 90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle - 90)*PI/180));
+        xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle)*PI/180));
+        yDir = round(robotCentreY+(-ROBOT_WIDTH/2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle)*PI/180));
+        xTL = (int) xDir;
+        yTL = (int) yDir;
+
+        SDL_Rect rect = {xTL, yTL, 2, sensor_sensitivity};
+        SDL_SetRenderDrawColor(renderer, 80+(20*(5-i)), 80+(20*(5-i)), 80+(20*(5-i)), 255);
+        SDL_RenderDrawRect(renderer, &rect);
+        SDL_RenderFillRect(renderer, &rect);
+    }
+    
+    //top left facing sensor
+    for (i = 0; i < 5; i++)
+    {
+        xDir = round(robotCentreX + (ROBOT_WIDTH/2)*cos((robot->angle+90)*PI/180)  - (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle - 90)*PI/180));
+                     //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle - 115)*PI/180));
+        yDir = round(robotCentreY + (ROBOT_WIDTH/2)*sin((robot->angle+90)*PI/180) +
+                     (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle - 90)*PI/180));
+                     //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle - 115)*PI/180));
         
         //xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle)*PI/180));
         //yDir = round(robotCentreY+(-ROBOT_WIDTH/2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle)*PI/180));
@@ -316,10 +371,13 @@ void robotUpdate(struct SDL_Renderer * renderer, struct Robot * robot){
         
     }
     
-    //Front Sensor
-    for (i = 0; i < 5; i++) {
-        xDir = round(robotCentreX  -  (-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle)*PI/180));
-        yDir = round(robotCentreY +   (-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle)*PI/180));
+    //Bottom left facing sensor
+    for (i = 0; i < 5; i++)
+    {
+        xDir = round(robotCentreX + (ROBOT_WIDTH/2)*cos((robot->angle-90)*PI/180)  - (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle - 90)*PI/180));
+                     //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle - 65)*PI/180));
+        yDir = round(robotCentreY + (ROBOT_WIDTH/2)*sin((robot->angle-90)*PI/180) + (-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle - 90)*PI/180));
+                     //(-ROBOT_HEIGHT/6-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle - 65)*PI/180));
         
         //xDir = round(robotCentreX+(-ROBOT_WIDTH/2)*cos((robot->angle)*PI/180)-(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*sin((robot->angle)*PI/180));
         //yDir = round(robotCentreY+(-ROBOT_WIDTH/2)*sin((robot->angle)*PI/180)+(-ROBOT_HEIGHT/2-SENSOR_VISION+sensor_sensitivity*i)*cos((robot->angle)*PI/180));
@@ -330,9 +388,9 @@ void robotUpdate(struct SDL_Renderer * renderer, struct Robot * robot){
         SDL_SetRenderDrawColor(renderer, 80+(20*(5-i)), 80+(20*(5-i)), 80+(20*(5-i)), 255);
         SDL_RenderDrawRect(renderer, &rect);
         SDL_RenderFillRect(renderer, &rect);
+        
     }
 }
-
 
 
 void robotMotorMove(struct Robot * robot) {
@@ -387,99 +445,140 @@ void match90(struct Robot * robot, int direction, int range) {
     
 }
 
-void robotAutoMotorMove(struct Robot * robot, int left_sensor, int right_sensor, int front_sensor) {
+#define turningSpeed 4
+#define topSpeed 5
+#define stopLeft 3
+#define tooClose 6
+#define tooFar 4
+
+
+void robotAutoMotorMove(struct Robot * robot, int top_left_sensor, int bottom_left_sensor, int front_right_sensor, int front_left_sensor) {
     
     //Any polled moves will always be done first
-    if (topPoll(robot) != NOTHING) {
-        robot->direction = popPoll(robot);
+    if (topPoll(robot) != IGNORE) {
+        int move = popPoll(robot);
+        if (move == NOTHING) return;
+        robot->direction = move;
         printf("Using polled\n");
         return;
     }
     
-    //If robot has cleared near walls and search forward for the next one
-    if (robot->state == STATE_DRIVE) {
-        
-        
-        //If almost running into the side walls
-        if (left_sensor >= 7 || right_sensor >= 7) {
-            
-            if (robot->currentSpeed > 5) {
-                robot->direction = DOWN;
-                return;
-            }
-            
-            if (left_sensor > right_sensor) {
-                robot->direction = RIGHT;
-                
-                if (robot->currentSpeed < 3) addToPoll(robot, UP);
-            }else {
-                robot->direction = LEFT;
-                if (robot->currentSpeed < 3) addToPoll(robot, UP);
-            }
-            return;
-        }
-        
-        
-        //Running into the wall in front
-        if (front_sensor < 1) {
-            
-            if (robot->currentSpeed < 6) {
-                robot->direction = UP;
-            }
-            
-        }else {
-            
-            if (robot->currentSpeed > 3) {
-                robot->direction = DOWN;
-                
-            }else {
-                if (left_sensor > right_sensor) {
-                    printf("Making a right turn\n");
-                    robot->direction = RIGHT;
-                    robot->state = STATE_RIGHT_CLEAR;
-                    
-                }else {
-                    printf("Making a left turn\n");
-                    robot->direction = LEFT;
-                    robot->state = STATE_LEFT_CLEAR;
-                }
-            }
-        }
-        
-        
-    //Run into wall then it must avoid it
-    }else if (robot->state == STATE_LEFT_CLEAR) {
-        
-        if (front_sensor > 0) {
-            robot->direction = LEFT;
-            return;
-        }else {
-            printf("Clear to drive");
-            //addToPoll(robot, LEFT);
-            //addToPoll(robot, LEFT);
-            robot->state = STATE_DRIVE;
-            
-            match90(robot, LEFT, 5);
-            return;
-        }
-        
     
-    }else if (robot->state == STATE_RIGHT_CLEAR) {
+    if (robot->state == STATE_START) {
+        addToPoll(robot, LEFT);
+        addToPoll(robot, LEFT);
+        addToPoll(robot, LEFT);
+        addToPoll(robot, LEFT);
+        addToPoll(robot, LEFT);
+
         
-        if (front_sensor > 0) {
+        robot->state = STATE_FOLLOW;
+    }
+
+    if (robot->state == STATE_FOLLOW) {
+        
+        // ------------ Wall ahead -----------------------------
+        if (front_left_sensor > 0 || front_right_sensor > 0) {
+            printf("TO RIGHT STATE\n");
+            robot->state = STATE_RIGHT;
+            return;
+        }
+        
+        // -------------------- Lost left wall ----------------------
+        if (top_left_sensor == 0 && bottom_left_sensor > 0) {
+            robot->state = STATE_LEFT;
+            printf("TO LEFT STATE\n");
+            //addToPoll(robot, NOTHING);
+            return;
+        }
+        
+        // ------------- Maintaining distance to the wall
+        
+        if (top_left_sensor <= tooFar )  {
+            robot->direction = LEFT;
+            
+            if (robot->currentSpeed < topSpeed) {
+                addToPoll(robot, UP);
+            }
+            addToPoll(robot, NOTHING);
+            //addToPoll(robot, RIGHT);
+            return;
+        }
+        
+        if (top_left_sensor >= tooClose)  {
+            robot->direction = RIGHT;
+            
+            if (robot->currentSpeed < topSpeed) {
+               addToPoll(robot, UP);
+            }
+            addToPoll(robot, NOTHING);
+            //addToPoll(robot, LEFT);
+            return;
+        }
+    
+        
+        //------------------Balancing -------------------------------
+        if ((top_left_sensor - bottom_left_sensor) > 1 ) {
             robot->direction = RIGHT;
             return;
-        }else {
-            printf("Clear to drive");
-            //addToPoll(robot, RIGHT);
-            //addToPoll(robot, RIGHT);
-            robot->state = STATE_DRIVE;
-            
-            match90(robot, RIGHT, 5);
+        }else if ((bottom_left_sensor - top_left_sensor) > 1) {
+            robot->direction = LEFT;
             return;
+        }
+        
+        
+        if (robot->currentSpeed  < topSpeed) {
+            robot->direction = UP;
+            return;
+        }
+        
+        
+    }
+    
+    
+    
+    if (robot->state == STATE_LEFT) {
+        
+        if (robot->currentSpeed > turningSpeed) {
+            robot->direction = DOWN;
+            return;
+        }else if (robot->currentSpeed < turningSpeed) {
+            robot->direction = UP;
+            return;
+        }
+        
+        
+        if (top_left_sensor > stopLeft) {
+            robot->state = STATE_FOLLOW;
+            robot->direction = RIGHT;
+            //addToPoll(robot, RIGHT);
+            printf("TO FOLLOW STATE\n");
+            return;
+        }
+        
+        robot->direction = LEFT;
+        return;
+        
+    }
+    
+    
+    // ----------------------------
+    if (robot->state == STATE_RIGHT) {
+        
+        if (robot->currentSpeed > 1) {
+            robot->direction = DOWN;
+        }else if (robot->currentSpeed < 1) {
+            robot->direction = UP;
+        }
+        else if (front_left_sensor == 0 && front_right_sensor == 0) {
+            robot->direction = NOTHING;
+            robot->state = STATE_FOLLOW;
+            printf("TO FOLLOW STATE\n");
+            
+        }else {
+            robot->direction = RIGHT;
         }
     }
     
-
     
 }

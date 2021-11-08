@@ -6,6 +6,7 @@
 #define LEFT 3
 #define RIGHT 4
 #define NOTHING 5
+#define IGNORE 6
 
 #define OVERALL_WINDOW_WIDTH 640
 #define OVERALL_WINDOW_HEIGHT 480
@@ -19,7 +20,7 @@
 #define DEFAULT_SPEED_CHANGE 1
 #define MAX_ROBOT_SPEED 25
 #define PI 3.14159265
-#define SENSOR_VISION 70
+#define SENSOR_VISION 30
 
 #define POLLSIZE 10
 
